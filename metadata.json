@@ -1,0 +1,6 @@
+{
+  "name": "OpsPilot AI",
+  "description": "Your AI operations manager for small businesses. Understand sales, inventory, customers, and expenses with evidence-backed business insights.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

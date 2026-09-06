@@ -1,0 +1,155 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with reference to their primary business workspace",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "User email address" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "businessId": { "type": "string", "description": "Associated business workspace ID" },
+        "createdAt": { "type": "string", "description": "Creation timestamp ISO string or server timestamp" }
+      },
+      "required": ["uid", "email", "businessId"]
+    },
+    "Business": {
+      "title": "Business",
+      "description": "Business workspace entity providing data isolation for a merchant",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Business name e.g. NovaMart Electronics" },
+        "industry": { "type": "string", "description": "Industry category e.g. Retail / Electronics" },
+        "ownerId": { "type": "string", "description": "User ID of the business owner" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["name", "industry", "ownerId"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Inventory product item for stock tracking",
+      "type": "object",
+      "properties": {
+        "businessId": { "type": "string", "description": "Owning business workspace ID" },
+        "ownerId": { "type": "string", "description": "Owner UID who created the record" },
+        "name": { "type": "string", "description": "Product name" },
+        "sku": { "type": "string", "description": "Stock keeping unit code" },
+        "category": { "type": "string", "description": "Product category" },
+        "price": { "type": "number", "description": "Selling unit price" },
+        "stock": { "type": "number", "description": "Current quantity in stock" },
+        "threshold": { "type": "number", "description": "Minimum stock threshold for alerts" },
+        "salesVelocity": { "type": "string", "description": "Sales velocity rating e.g. High, Medium, Low" },
+        "status": { "type": "string", "description": "Inventory status: Normal, Low Stock, Out of Stock" },
+        "supplierLeadTimeDays": { "type": "number", "description": "Days for restocking" },
+        "createdAt": { "type": "string", "description": "Timestamp created" },
+        "updatedAt": { "type": "string", "description": "Timestamp updated" }
+      },
+      "required": ["businessId", "ownerId", "name", "price", "stock"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Point-of-sale transaction record",
+      "type": "object",
+      "properties": {
+        "businessId": { "type": "string", "description": "Owning business workspace ID" },
+        "ownerId": { "type": "string", "description": "Owner UID who recorded the sale" },
+        "orderNumber": { "type": "string", "description": "Human readable order invoice number" },
+        "date": { "type": "string", "description": "Transaction date" },
+        "customerName": { "type": "string", "description": "Name of purchaser" },
+        "category": { "type": "string", "description": "Item category" },
+        "items": { "type": "string", "description": "Item description summary" },
+        "channel": { "type": "string", "description": "Channel: In-Store or Online Store" },
+        "paymentMethod": { "type": "string", "description": "UPI, Card, Cash, NetBanking" },
+        "amount": { "type": "number", "description": "Sale total amount" },
+        "status": { "type": "string", "description": "Completed, Processing, Refunded" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["businessId", "ownerId", "orderNumber", "amount", "status"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer CRM profile",
+      "type": "object",
+      "properties": {
+        "businessId": { "type": "string", "description": "Owning business workspace ID" },
+        "ownerId": { "type": "string", "description": "Owner UID" },
+        "name": { "type": "string", "description": "Customer full name" },
+        "email": { "type": "string", "description": "Customer email" },
+        "phone": { "type": "string", "description": "Customer phone number" },
+        "orders": { "type": "number", "description": "Total order count" },
+        "totalSpend": { "type": "number", "description": "Lifetime purchase value" },
+        "lastPurchase": { "type": "string", "description": "Last order date" },
+        "status": { "type": "string", "description": "VIP, Active, At Risk, Inactive" },
+        "preferredCategory": { "type": "string", "description": "Frequently purchased category" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["businessId", "ownerId", "name", "status"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Operational expense record",
+      "type": "object",
+      "properties": {
+        "businessId": { "type": "string", "description": "Owning business workspace ID" },
+        "ownerId": { "type": "string", "description": "Owner UID" },
+        "date": { "type": "string", "description": "Expense date" },
+        "category": { "type": "string", "description": "Rent, Marketing, Shipping, Suppliers, Utilities, Salary" },
+        "description": { "type": "string", "description": "Expense details" },
+        "amount": { "type": "number", "description": "Expense monetary amount" },
+        "vendor": { "type": "string", "description": "Payee or supplier name" },
+        "status": { "type": "string", "description": "Paid or Pending" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["businessId", "ownerId", "category", "amount", "status"]
+    },
+    "AIAnalysis": {
+      "title": "AIAnalysis",
+      "description": "AI Operations diagnostic analysis record",
+      "type": "object",
+      "properties": {
+        "businessId": { "type": "string", "description": "Owning business workspace ID" },
+        "ownerId": { "type": "string", "description": "Owner UID" },
+        "query": { "type": "string", "description": "Natural language diagnostic query" },
+        "title": { "type": "string", "description": "Diagnostic title" },
+        "date": { "type": "string", "description": "Analysis run date" },
+        "confidence": { "type": "number", "description": "Diagnostic confidence score" },
+        "summary": { "type": "string", "description": "Core findings summary" },
+        "evidence": { "type": "array", "description": "Key data evidence points" },
+        "keyFactors": { "type": "array", "description": "Categorized impact factors" },
+        "recommendations": { "type": "array", "description": "Actionable prioritized recommendations" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["businessId", "ownerId", "query", "title", "summary"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Stores user profiles with associated business ID"
+    },
+    "/businesses/{businessId}": {
+      "schema": "Business",
+      "description": "Stores business workspaces for data isolation"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Stores product items scoped to a business"
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Stores point of sale transactions scoped to a business"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Stores CRM customer profiles scoped to a business"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Stores operating expenses scoped to a business"
+    },
+    "/aiAnalyses/{analysisId}": {
+      "schema": "AIAnalysis",
+      "description": "Stores AI diagnostic reports scoped to a business"
+    }
+  }
+}

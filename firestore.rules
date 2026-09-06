@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 1. Users collection: private user profile isolation
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Users cannot enumerate all profiles
+      allow create: if isSignedIn() 
+        && request.auth.uid == userId 
+        && request.resource.data.uid == userId;
+      allow update: if isOwner(userId) 
+        && request.resource.data.uid == userId;
+      allow delete: if false;
+    }
+
+    // 2. Businesses collection: workspace isolation
+    match /businesses/{businessId} {
+      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn() 
+        && resource.data.ownerId == request.auth.uid 
+        && request.resource.data.ownerId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // 3. Products collection: isolated by ownerId & businessId
+    match /products/{productId} {
+      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() 
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.businessId is string;
+      allow update: if isSignedIn() 
+        && resource.data.ownerId == request.auth.uid 
+        && request.resource.data.ownerId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // 4. Sales collection: isolated by ownerId & businessId
+    match /sales/{saleId} {
+      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() 
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.businessId is string;
+      allow update: if isSignedIn() 
+        && resource.data.ownerId == request.auth.uid 
+        && request.resource.data.ownerId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // 5. Customers collection: isolated by ownerId & businessId
+    match /customers/{customerId} {
+      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() 
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.businessId is string;
+      allow update: if isSignedIn() 
+        && resource.data.ownerId == request.auth.uid 
+        && request.resource.data.ownerId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // 6. Expenses collection: isolated by ownerId & businessId
+    match /expenses/{expenseId} {
+      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() 
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.businessId is string;
+      allow update: if isSignedIn() 
+        && resource.data.ownerId == request.auth.uid 
+        && request.resource.data.ownerId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // 7. AI Analyses collection: isolated by ownerId & businessId
+    match /aiAnalyses/{analysisId} {
+      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() 
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.businessId is string;
+      allow update: if isSignedIn() 
+        && resource.data.ownerId == request.auth.uid 
+        && request.resource.data.ownerId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+  }
+}
