@@ -25,13 +25,15 @@ export function formatAuthError(error: unknown): string {
     case 'auth/invalid-credential':
       return 'Incorrect email or password. Please try again.';
     case 'auth/email-already-in-use':
-      return 'An account already exists with this email. Please log in instead.';
+      return 'An account already exists with this email address. Please sign in instead.';
     case 'auth/weak-password':
       return 'Password is too weak. Please use at least 6 characters with numbers or symbols.';
+    case 'auth/operation-not-allowed':
+      return 'Email/Password sign-in is not enabled in Firebase Console. Please enable it under Authentication > Sign-in method.';
     case 'auth/network-request-failed':
       return 'Network connection error. Please check your internet connection.';
     case 'auth/too-many-requests':
-      return 'Too many unsuccessful attempts. Please wait a few minutes before trying again.';
+      return 'Too many unsuccessful attempts. Access is temporarily restricted. Please wait a few minutes before trying again.';
     case 'auth/user-disabled':
       return 'This user account has been disabled. Please contact support.';
     case 'auth/popup-closed-by-user':
@@ -43,6 +45,9 @@ export function formatAuthError(error: unknown): string {
     default:
       if (message.includes('missing-field')) {
         return 'Please fill in all required fields.';
+      }
+      if (message.includes('auth/invalid-credential') || message.includes('INVALID_LOGIN_CREDENTIALS')) {
+        return 'Incorrect email or password. Please try again.';
       }
       return message || 'Authentication failed. Please try again.';
   }
@@ -99,6 +104,23 @@ export async function registerWithEmail(
   }
 
   const now = new Date().toISOString();
+
+  // Check if profile already exists to prevent duplicate writes
+  const existingUserSnap = await getDoc(doc(db, 'users', user.uid));
+  if (existingUserSnap.exists()) {
+    const existingProfile = existingUserSnap.data() as UserProfile;
+    if (existingProfile.businessId) {
+      const existingBizSnap = await getDoc(doc(db, 'businesses', existingProfile.businessId));
+      if (existingBizSnap.exists()) {
+        return {
+          user,
+          userProfile: existingProfile,
+          business: existingBizSnap.data() as Business,
+        };
+      }
+    }
+  }
+
   // 3. Create Business workspace: businesses/{businessId}
   const cleanBusinessName = businessName?.trim() || 'NovaMart Electronics';
   const cleanIndustry = industry?.trim() || 'Retail / Electronics';

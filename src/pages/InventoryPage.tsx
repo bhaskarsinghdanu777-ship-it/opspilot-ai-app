@@ -143,8 +143,10 @@ export const InventoryPage: React.FC = () => {
     }
   };
 
-  const lowStockCount = products.filter((p) => p.status === 'Low Stock').length;
-  const outOfStockCount = products.filter((p) => p.status === 'Out of Stock').length;
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('All');
+
+  const lowStockCount = products.filter((p) => p.status === 'Low Stock' || (p.stock > 0 && p.stock <= p.threshold)).length;
+  const outOfStockCount = products.filter((p) => p.status === 'Out of Stock' || p.stock === 0).length;
   const totalValuation = products.reduce((acc, p) => acc + p.price * p.stock, 0);
 
   return (
@@ -201,16 +203,22 @@ export const InventoryPage: React.FC = () => {
         </div>
       )}
 
-      {/* 4 Inventory Metric Cards */}
+      {/* 4 Interactive Inventory Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 1. Total Products */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+        <div
+          onClick={() => setSelectedStatusFilter('All')}
+          className={`bg-white border rounded-xl p-5 shadow-xs cursor-pointer transition-all hover:border-blue-400 ${
+            selectedStatusFilter === 'All' ? 'ring-2 ring-blue-500 border-blue-500' : 'border-slate-200'
+          }`}
+        >
           <div className="text-xs text-slate-500 font-medium mb-1">Total Active SKUs</div>
           <div className="text-2xl font-bold text-slate-900 font-mono tracking-tight">
             {products.length} Products
           </div>
-          <div className="mt-2 text-xs text-slate-500">
-            Stored in Cloud Firestore
+          <div className="mt-2 text-xs text-slate-500 flex items-center justify-between">
+            <span>Stored in Cloud Firestore</span>
+            <span className="text-blue-600 font-medium">View all &rarr;</span>
           </div>
         </div>
 
@@ -226,7 +234,14 @@ export const InventoryPage: React.FC = () => {
         </div>
 
         {/* 3. Low-Stock Count */}
-        <div className="bg-white border border-amber-200 bg-amber-50/20 rounded-xl p-5 shadow-xs">
+        <div
+          onClick={() => setSelectedStatusFilter('Low Stock')}
+          className={`bg-white border rounded-xl p-5 shadow-xs cursor-pointer transition-all hover:border-amber-400 ${
+            selectedStatusFilter === 'Low Stock'
+              ? 'ring-2 ring-amber-500 border-amber-500 bg-amber-50/40'
+              : 'border-amber-200 bg-amber-50/20'
+          }`}
+        >
           <div className="flex items-center justify-between text-xs text-amber-800 font-medium mb-1">
             <span>Low-Stock Count</span>
             <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
@@ -234,13 +249,21 @@ export const InventoryPage: React.FC = () => {
           <div className="text-2xl font-bold text-amber-700 font-mono tracking-tight">
             {lowStockCount} Items
           </div>
-          <div className="mt-2 text-xs text-amber-700">
-            Stock &le; safety threshold
+          <div className="mt-2 text-xs text-amber-700 flex items-center justify-between">
+            <span>Stock &le; safety threshold</span>
+            <span className="font-semibold">Filter &rarr;</span>
           </div>
         </div>
 
         {/* 4. Out-of-Stock Count */}
-        <div className="bg-white border border-rose-200 bg-rose-50/20 rounded-xl p-5 shadow-xs">
+        <div
+          onClick={() => setSelectedStatusFilter('Out of Stock')}
+          className={`bg-white border rounded-xl p-5 shadow-xs cursor-pointer transition-all hover:border-rose-400 ${
+            selectedStatusFilter === 'Out of Stock'
+              ? 'ring-2 ring-rose-500 border-rose-500 bg-rose-50/40'
+              : 'border-rose-200 bg-rose-50/20'
+          }`}
+        >
           <div className="flex items-center justify-between text-xs text-rose-800 font-medium mb-1">
             <span>Out-of-Stock Count</span>
             <AlertOctagon className="w-3.5 h-3.5 text-rose-600" />
@@ -248,14 +271,20 @@ export const InventoryPage: React.FC = () => {
           <div className="text-2xl font-bold text-rose-700 font-mono tracking-tight">
             {outOfStockCount} Items
           </div>
-          <div className="mt-2 text-xs text-rose-700 font-medium">
-            Requires supplier reorder
+          <div className="mt-2 text-xs text-rose-700 font-medium flex items-center justify-between">
+            <span>Requires urgent reorder</span>
+            <span className="font-bold">Filter &rarr;</span>
           </div>
         </div>
       </div>
 
       {/* Inventory Table */}
-      <InventoryTable products={products} onRestock={handleRestock} />
+      <InventoryTable
+        products={products}
+        onRestock={handleRestock}
+        statusFilter={selectedStatusFilter}
+        onStatusFilterChange={setSelectedStatusFilter}
+      />
 
       {/* Add SKU Modal */}
       <Modal

@@ -57,8 +57,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       name: 'Inventory',
       path: '/inventory',
       icon: <Package className="w-4 h-4 shrink-0" />,
-      badge: '3 out',
-      badgeColor: 'bg-rose-100 text-rose-700 font-semibold',
     },
     {
       name: 'Customers',
@@ -73,9 +71,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     {
       name: 'AI Operations',
       path: '/ai',
-      icon: <Sparkles className="w-4 h-4 shrink-0 text-blue-500" />,
-      badge: 'Preview',
-      badgeColor: 'bg-blue-100 text-blue-700 font-medium',
+      icon: <Sparkles className="w-4 h-4 shrink-0 text-emerald-400" />,
+      badge: 'Live',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30',
     },
     {
       name: 'Analysis History',
@@ -206,7 +204,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </nav>
         </div>
 
-        {/* Bottom User / Phase 2 Status Area */}
+        {/* Bottom User Profile Area */}
         <div className="mt-auto p-4 border-t border-slate-800 bg-slate-900/50">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white shrink-0">

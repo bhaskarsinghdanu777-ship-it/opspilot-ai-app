@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/src/lib/firebase/AuthContext';
 import { getSales, addSale } from '@/src/services/sales';
+import { getProducts } from '@/src/services/products';
 import { mockSalesData, salesSummary } from '@/src/lib/mock-data/sales';
-import { SaleItem } from '@/src/types';
+import { mockInventoryData } from '@/src/lib/mock-data/inventory';
+import { SaleItem, ProductItem } from '@/src/types';
 import { SalesTrendChart } from '@/src/components/charts/SalesTrendChart';
 import { SalesTable } from '@/src/components/tables/SalesTable';
+import { TopVsUnderperformingGrid } from '@/src/components/sales/TopVsUnderperformingGrid';
 import {
   TrendingDown,
   Database,
@@ -18,6 +21,7 @@ import { seedBusinessData } from '@/src/services/seedData';
 export const SalesPage: React.FC = () => {
   const { user, business } = useAuth();
   const [sales, setSales] = useState<SaleItem[]>([]);
+  const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
@@ -26,18 +30,28 @@ export const SalesPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const data = await getSales(user.uid, business?.id);
-      if (data && data.length > 0) {
-        setSales(data);
+      const [salesData, prodsData] = await Promise.all([
+        getSales(user.uid, business?.id).catch(() => []),
+        getProducts(user.uid, business?.id).catch(() => []),
+      ]);
+
+      if (salesData && salesData.length > 0) {
+        setSales(salesData);
         setStatusNotice('Loaded live transactions from Cloud Firestore.');
       } else {
-        // Fallback to initial mock view if empty, but offer 1-click seeding
         setSales(mockSalesData);
         setStatusNotice('Workspace has no stored sales yet. Showing default demo stream.');
+      }
+
+      if (prodsData && prodsData.length > 0) {
+        setProducts(prodsData);
+      } else {
+        setProducts(mockInventoryData);
       }
     } catch (err) {
       console.error('Failed to load sales from Firestore:', err);
       setSales(mockSalesData);
+      setProducts(mockInventoryData);
       setStatusNotice('Offline or Firestore error. Displaying local cache.');
     } finally {
       setLoading(false);
@@ -188,6 +202,9 @@ export const SalesPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Top-Selling vs Underperforming Items */}
+      <TopVsUnderperformingGrid sales={sales} products={products} />
 
       {/* Sales Trend Chart */}
       <SalesTrendChart />

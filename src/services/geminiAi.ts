@@ -22,8 +22,13 @@ async function callAiApi(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
+  // Compute final URL: supports optional external backend via VITE_API_BASE_URL
+  // Defaults to relative URL (supported by Netlify Functions and local Express dev server)
+  const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+  const url = apiBaseUrl ? `${apiBaseUrl}${endpoint}` : endpoint;
+
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -41,8 +46,11 @@ async function callAiApi(
         const errorData = await response.json();
         errorMessage = errorData.error || errorData.details || errorMessage;
       } catch (_) {
-        // Fallback to generic status text
-        errorMessage = response.statusText || errorMessage;
+        if (response.status === 404) {
+          errorMessage = `Endpoint not found (HTTP 404) at ${url}. Please verify that Netlify Functions are deployed or set VITE_API_BASE_URL to your backend.`;
+        } else {
+          errorMessage = response.statusText || errorMessage;
+        }
       }
       throw new Error(errorMessage);
     }
@@ -87,7 +95,14 @@ function validateAndSanitizeAiAnalysis(raw: any): AiAnalysis {
         : 90,
     executiveSummary:
       raw.executiveSummary && typeof raw.executiveSummary === 'object'
-        ? raw.executiveSummary
+        ? {
+            revenuePerformance: String(raw.executiveSummary.revenuePerformance || 'Revenue performance data stable.'),
+            orderTrends: String(raw.executiveSummary.orderTrends || 'Order volume monitored.'),
+            estimatedProfit: String(raw.executiveSummary.estimatedProfit || 'Margins tracked in telemetry.'),
+            operationalChanges: String(raw.executiveSummary.operationalChanges || 'Standard operations recorded.'),
+            majorRisks: String(raw.executiveSummary.majorRisks || 'No severe risks flagged.'),
+            recommendedActionsSummary: String(raw.executiveSummary.recommendedActionsSummary || 'Maintain operational monitoring.'),
+          }
         : undefined,
     factsFromData: Array.isArray(raw.factsFromData)
       ? raw.factsFromData.filter((f: any) => typeof f === 'string')
@@ -95,11 +110,32 @@ function validateAndSanitizeAiAnalysis(raw: any): AiAnalysis {
     evidence: Array.isArray(raw.evidence)
       ? raw.evidence.filter((e: any) => typeof e === 'string')
       : [],
-    keyFactors: Array.isArray(raw.keyFactors) ? raw.keyFactors : [],
-    recommendations: Array.isArray(raw.recommendations)
-      ? raw.recommendations
+    keyFactors: Array.isArray(raw.keyFactors)
+      ? raw.keyFactors.map((k: any) => ({
+          title: typeof k?.title === 'string' ? k.title : 'Operational Factor',
+          description: typeof k?.description === 'string' ? k.description : '',
+          severity: ['critical', 'warning', 'info'].includes(k?.severity) ? k.severity : 'info',
+        }))
       : [],
-    risks: Array.isArray(raw.risks) ? raw.risks : [],
+    recommendations: Array.isArray(raw.recommendations)
+      ? raw.recommendations.map((rec: any) => ({
+          action: typeof rec?.action === 'string' ? rec.action : 'Recommended operational action',
+          expectedImpact: typeof rec?.expectedImpact === 'string' ? rec.expectedImpact : 'Positive operational impact',
+          timeframe: typeof rec?.timeframe === 'string' ? rec.timeframe : 'Short-term',
+          priority: ['High', 'Medium', 'Low'].includes(rec?.priority) ? rec.priority : 'Medium',
+          explainableReason: typeof rec?.explainableReason === 'string' ? rec.explainableReason : undefined,
+        }))
+      : [],
+    risks: Array.isArray(raw.risks)
+      ? raw.risks.map((r: any) => ({
+          category: typeof r?.category === 'string' ? r.category : 'general',
+          severity: ['critical', 'warning', 'info'].includes(r?.severity) ? r.severity : 'info',
+          title: typeof r?.title === 'string' ? r.title : 'Operational Risk Area',
+          explanation: typeof r?.explanation === 'string' ? r.explanation : '',
+          supportingData: typeof r?.supportingData === 'string' ? r.supportingData : 'Telemetry metrics',
+          recommendedAction: typeof r?.recommendedAction === 'string' ? r.recommendedAction : 'Review operational metrics',
+        }))
+      : [],
     insufficientDataNotes: Array.isArray(raw.insufficientDataNotes)
       ? raw.insufficientDataNotes
       : [],

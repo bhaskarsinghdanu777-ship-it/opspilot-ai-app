@@ -39,8 +39,10 @@ const ai = new GoogleGenAI({
   },
 });
 
-// Production model: gemini-3.8-flash for high reasoning performance & structured JSON output
-const GEMINI_MODEL = 'gemini-3.8-flash';
+// Production primary model with automatic resilient fallback
+const PRIMARY_MODEL = 'gemini-3.8-flash';
+const FALLBACK_MODEL = 'gemini-3.1-flash-lite';
+const GEMINI_MODEL = PRIMARY_MODEL;
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -68,6 +70,58 @@ function sanitizeLog(data: any): string {
 }
 
 /**
+ * Resilient Gemini Content Generator with Automatic Model Fallback
+ * Seamlessly handles 429 quota exhaustion and 503 high-demand spikes
+ */
+async function generateContentWithRetry(
+  prompt: string,
+  options: {
+    temperature?: number;
+  } = {}
+) {
+  const modelsToTry = [PRIMARY_MODEL, FALLBACK_MODEL];
+  let lastError: any = null;
+
+  for (const model of modelsToTry) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            temperature: options.temperature ?? 0.2,
+          },
+        });
+        return { response, usedModel: model };
+      } catch (err: any) {
+        lastError = err;
+        const status = err?.status || err?.code;
+        const msg = String(err?.message || '');
+        const isTransient =
+          status === 503 ||
+          status === 429 ||
+          msg.includes('503') ||
+          msg.includes('429') ||
+          msg.includes('UNAVAILABLE') ||
+          msg.includes('high demand') ||
+          msg.includes('RESOURCE_EXHAUSTED');
+
+        if (isTransient && attempt === 0) {
+          console.warn(
+            `[Gemini Retry] Model ${model} returned transient state (${status || 'error'}). Retrying in 1s...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
+        }
+        break; // break to try fallback model
+      }
+    }
+  }
+  throw lastError;
+}
+
+/**
  * Centralized Gemini error mapper
  * Gracefully handles 429 rate limits, 504 timeouts, and server errors without leaking secrets or stack traces
  */
@@ -85,6 +139,19 @@ function handleGeminiError(err: any, res: Response, feature: string) {
     return res.status(429).json({
       error: 'Gemini AI rate limit reached. Please wait a moment and try again.',
       code: 'RATE_LIMIT_EXCEEDED',
+    });
+  }
+
+  // 1b. Service Unavailable / High Demand (503)
+  if (
+    err?.status === 503 ||
+    errString.includes('503') ||
+    errString.includes('UNAVAILABLE') ||
+    errString.includes('high demand')
+  ) {
+    return res.status(503).json({
+      error: 'Gemini AI model is currently experiencing high demand. Please try again in a few seconds.',
+      code: 'MODEL_HIGH_DEMAND',
     });
   }
 
@@ -165,23 +232,30 @@ async function authenticateFirebaseUser(
           return next();
         }
       }
+
+      // If Google Identity Toolkit explicitly rejected the token or user was not found
+      return res.status(401).json({
+        error: 'Unauthorized: Firebase ID token is invalid or expired',
+        code: 'UNAUTHORIZED',
+      });
     }
 
-    // Fallback: Parse claims if identity lookup is offline or unconfigured
-    // Decode standard Firebase JWT payload safely
-    const parts = idToken.split('.');
-    if (parts.length === 3) {
-      const payloadBuf = Buffer.from(parts[1], 'base64');
-      const payload = JSON.parse(payloadBuf.toString('utf-8'));
-      const uid = payload.user_id || payload.sub;
-      const exp = payload.exp;
+    // Only in local development/test environments where FIREBASE_API_KEY is completely unset
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+      const parts = idToken.split('.');
+      if (parts.length === 3) {
+        const payloadBuf = Buffer.from(parts[1], 'base64');
+        const payload = JSON.parse(payloadBuf.toString('utf-8'));
+        const uid = payload.user_id || payload.sub;
+        const exp = payload.exp;
 
-      if (uid && exp && exp * 1000 > Date.now()) {
-        req.user = {
-          uid,
-          email: payload.email,
-        };
-        return next();
+        if (uid && exp && exp * 1000 > Date.now()) {
+          req.user = {
+            uid,
+            email: payload.email,
+          };
+          return next();
+        }
       }
     }
 
@@ -216,10 +290,13 @@ function buildBusinessContextSummary(
 ) {
   const rawBusiness = rawContext.business || {};
   // If business has an ownerId that doesn't match verifiedUid, isolate it
-  const businessName =
-    rawBusiness.ownerId && rawBusiness.ownerId !== verifiedUid
-      ? 'Tenant Isolated Business'
-      : rawBusiness.name || 'NovaMart Retail Workspace';
+  const isBusinessOwner = !rawBusiness.ownerId || rawBusiness.ownerId === verifiedUid;
+  const businessName = isBusinessOwner
+    ? rawBusiness.name || 'NovaMart Retail Workspace'
+    : 'Tenant Isolated Business';
+  const businessId = isBusinessOwner
+    ? rawBusiness.id || `biz_${verifiedUid.slice(0, 10)}`
+    : `biz_${verifiedUid.slice(0, 10)}`;
 
   // Strict ownership enforcement: ALL records must belong to verifiedUid
   const products = (rawContext.products || []).filter(
@@ -276,6 +353,7 @@ function buildBusinessContextSummary(
 
   return {
     verifiedUid,
+    businessId,
     businessName,
     isEmptyWorkspace,
     counts: {
@@ -333,14 +411,20 @@ function buildBusinessContextSummary(
   };
 }
 
-async function startServer() {
+export function createApp() {
   const app = express();
-
-  // Cloud Run compatible port handling (defaults to 3000 in dev/container)
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   // JSON payload parser with size limit
   app.use(express.json({ limit: '10mb' }));
+
+  // Netlify Functions path normalizer
+  // When Netlify rewrites /api/* to /.netlify/functions/api/:splat, normalize to /api/*
+  app.use((req, _res, next) => {
+    if (req.url.startsWith('/.netlify/functions/api')) {
+      req.url = req.url.replace('/.netlify/functions/api', '/api');
+    }
+    next();
+  });
 
   // Production CORS configuration
   app.use((req, res, next) => {
@@ -477,13 +561,8 @@ Return a JSON object conforming strictly to this structure:
 }
 `;
 
-        const response = await ai.models.generateContent({
-          model: GEMINI_MODEL,
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            temperature: 0.2,
-          },
+        const { response, usedModel } = await generateContentWithRetry(prompt, {
+          temperature: 0.2,
         });
 
         const rawText = response.text || '{}';
@@ -501,8 +580,10 @@ Return a JSON object conforming strictly to this structure:
             }),
             analysisType: 'executive_summary',
             dataPeriod: 'September 2026',
-            generatedBy: GEMINI_MODEL,
+            generatedBy: usedModel,
             timestamp: new Date().toISOString(),
+            ownerId: verifiedUid,
+            businessId: telemetry.businessId,
           },
         });
       } catch (err: any) {
@@ -597,13 +678,8 @@ Return JSON conforming strictly to:
 }
 `;
 
-        const response = await ai.models.generateContent({
-          model: GEMINI_MODEL,
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            temperature: 0.2,
-          },
+        const { response, usedModel } = await generateContentWithRetry(prompt, {
+          temperature: 0.2,
         });
 
         const rawText = response.text || '{}';
@@ -621,8 +697,10 @@ Return JSON conforming strictly to:
             }),
             analysisType: 'risk_analysis',
             dataPeriod: 'September 2026',
-            generatedBy: GEMINI_MODEL,
+            generatedBy: usedModel,
             timestamp: new Date().toISOString(),
+            ownerId: verifiedUid,
+            businessId: telemetry.businessId,
           },
         });
       } catch (err: any) {
@@ -695,13 +773,8 @@ Return JSON conforming strictly to:
 }
 `;
 
-        const response = await ai.models.generateContent({
-          model: GEMINI_MODEL,
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            temperature: 0.2,
-          },
+        const { response, usedModel } = await generateContentWithRetry(prompt, {
+          temperature: 0.2,
         });
 
         const rawText = response.text || '{}';
@@ -719,8 +792,10 @@ Return JSON conforming strictly to:
             }),
             analysisType: 'recommendations',
             dataPeriod: 'September 2026',
-            generatedBy: GEMINI_MODEL,
+            generatedBy: usedModel,
             timestamp: new Date().toISOString(),
+            ownerId: verifiedUid,
+            businessId: telemetry.businessId,
           },
         });
       } catch (err: any) {
@@ -805,13 +880,8 @@ Return JSON conforming strictly to:
 }
 `;
 
-        const response = await ai.models.generateContent({
-          model: GEMINI_MODEL,
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            temperature: 0.3,
-          },
+        const { response, usedModel } = await generateContentWithRetry(prompt, {
+          temperature: 0.3,
         });
 
         const rawText = response.text || '{}';
@@ -829,8 +899,10 @@ Return JSON conforming strictly to:
             }),
             analysisType: 'natural_language_query',
             dataPeriod: 'September 2026',
-            generatedBy: GEMINI_MODEL,
+            generatedBy: usedModel,
             timestamp: new Date().toISOString(),
+            ownerId: verifiedUid,
+            businessId: telemetry.businessId,
           },
         });
       } catch (err: any) {
@@ -859,6 +931,14 @@ Return JSON conforming strictly to:
     });
   });
 
+  return app;
+}
+
+export const app = createApp();
+
+export async function startServer() {
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
   // Vite middleware setup (development) or static asset serving (production)
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
@@ -880,7 +960,14 @@ Return JSON conforming strictly to:
   });
 }
 
-startServer().catch((err) => {
-  console.error('Fatal server startup error:', sanitizeLog(err));
-  process.exit(1);
-});
+// Only launch standalone server if not in a serverless function environment
+if (
+  process.env.NETLIFY !== 'true' &&
+  !process.env.AWS_LAMBDA_FUNCTION_NAME &&
+  !process.env.NETLIFY_DEV
+) {
+  startServer().catch((err) => {
+    console.error('Fatal server startup error:', sanitizeLog(err));
+    process.exit(1);
+  });
+}

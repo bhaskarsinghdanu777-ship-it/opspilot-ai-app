@@ -30,7 +30,7 @@ service cloud.firestore {
 
     // 2. Businesses collection: workspace isolation
     match /businesses/{businessId} {
-      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
       allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if isSignedIn() 
@@ -41,7 +41,7 @@ service cloud.firestore {
 
     // 3. Products collection: isolated by ownerId & businessId
     match /products/{productId} {
-      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
       allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
       allow create: if isSignedIn() 
         && request.resource.data.ownerId == request.auth.uid
@@ -54,7 +54,7 @@ service cloud.firestore {
 
     // 4. Sales collection: isolated by ownerId & businessId
     match /sales/{saleId} {
-      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
       allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
       allow create: if isSignedIn() 
         && request.resource.data.ownerId == request.auth.uid
@@ -67,7 +67,7 @@ service cloud.firestore {
 
     // 5. Customers collection: isolated by ownerId & businessId
     match /customers/{customerId} {
-      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
       allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
       allow create: if isSignedIn() 
         && request.resource.data.ownerId == request.auth.uid
@@ -80,7 +80,7 @@ service cloud.firestore {
 
     // 6. Expenses collection: isolated by ownerId & businessId
     match /expenses/{expenseId} {
-      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
       allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
       allow create: if isSignedIn() 
         && request.resource.data.ownerId == request.auth.uid
@@ -93,7 +93,7 @@ service cloud.firestore {
 
     // 7. AI Analyses collection: isolated by ownerId & businessId
     match /aiAnalyses/{analysisId} {
-      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
       allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
       allow create: if isSignedIn() 
         && request.resource.data.ownerId == request.auth.uid

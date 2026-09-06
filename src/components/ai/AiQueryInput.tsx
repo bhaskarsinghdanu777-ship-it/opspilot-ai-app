@@ -11,11 +11,11 @@ import {
 
 export const AI_SUGGESTED_QUESTIONS = [
   'Why did revenue decrease?',
-  'Which products are performing poorly?',
+  'Which products are underperforming?',
+  'Which inventory items need attention?',
   'What should I focus on today?',
-  'Which area has the highest risk?',
-  'How can I improve profit?',
-  'Which customers are at risk of churn?',
+  'Where are my biggest operational risks?',
+  'How can I improve profit margin?',
 ];
 
 export type AiAnalysisMode =

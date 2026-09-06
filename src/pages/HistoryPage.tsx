@@ -188,7 +188,7 @@ export const HistoryPage: React.FC = () => {
                 onClick={() => setActiveAnalysisModal(item)}
                 className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
               >
-                Quick Preview
+                View Details
               </button>
 
               <button

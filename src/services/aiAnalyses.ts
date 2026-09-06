@@ -26,28 +26,34 @@ export async function getAiAnalyses(
       );
     }
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({
+    const results = snap.docs.map((d) => ({
       id: d.id,
       ...(d.data() as Omit<AiAnalysis, 'id'>),
     }));
+    return results.sort((a, b) => {
+      const timeA = new Date(a.createdAt || a.timestamp || a.date || 0).getTime();
+      const timeB = new Date(b.createdAt || b.timestamp || b.date || 0).getTime();
+      return timeB - timeA;
+    });
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
   }
 }
 
 export async function addAiAnalysis(
-  data: Omit<AiAnalysis, 'id'>,
+  data: Omit<AiAnalysis, 'id'> | AiAnalysis,
   ownerId: string,
   businessId: string
 ): Promise<AiAnalysis> {
   const path = 'aiAnalyses';
   try {
     const now = new Date().toISOString();
+    const { id: _ignoreId, ...rest } = data as any;
     const payload = {
-      ...data,
+      ...rest,
       ownerId,
       businessId,
-      createdAt: data.createdAt || now,
+      createdAt: rest.createdAt || now,
     };
     const ref = await addDoc(collection(db, path), payload);
     return {

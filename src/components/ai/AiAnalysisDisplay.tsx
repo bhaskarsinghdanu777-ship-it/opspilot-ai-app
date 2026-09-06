@@ -64,7 +64,7 @@ export const AiAnalysisDisplay: React.FC<AiAnalysisDisplayProps> = ({
           <BrainCircuit className="w-8 h-8 animate-spin" />
         </div>
         <h3 className="text-base font-semibold text-slate-900">
-          Synthesizing Firestore Telemetry with Gemini 3.8 Flash...
+          Synthesizing Firestore Telemetry with Gemini AI...
         </h3>
         <p className="text-xs text-slate-500 max-w-lg mx-auto mt-2 leading-relaxed">
           Correlating authenticated POS transactions, SKU inventory stockouts, supplier
@@ -272,7 +272,7 @@ export const AiAnalysisDisplay: React.FC<AiAnalysisDisplayProps> = ({
                       <span className="text-xs font-bold text-slate-900">{risk.title}</span>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] font-semibold text-slate-500 capitalize bg-white/80 px-2 py-0.5 rounded border border-slate-200">
-                          {risk.category.replace('_', ' ')}
+                          {(risk.category || 'general').replace('_', ' ')}
                         </span>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${

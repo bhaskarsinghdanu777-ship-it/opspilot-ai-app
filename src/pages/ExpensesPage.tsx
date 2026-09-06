@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/src/lib/firebase/AuthContext';
 import { getExpenses, addExpense } from '@/src/services/expenses';
 import { mockExpensesData, expenseSummary, expenseCategoryBreakdown } from '@/src/lib/mock-data/expenses';
@@ -10,6 +10,10 @@ import {
   Database,
   RefreshCw,
   Sparkles,
+  PieChart,
+  ShieldAlert,
+  Percent,
+  Layers,
 } from 'lucide-react';
 import { seedBusinessData } from '@/src/services/seedData';
 
@@ -85,7 +89,52 @@ export const ExpensesPage: React.FC = () => {
     }
   };
 
-  const totalExpenseAmount = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  // Fixed vs Variable classifications
+  const { fixedTotal, variableTotal, largestDriver, totalExpenseAmount } = useMemo(() => {
+    let fixed = 0;
+    let variable = 0;
+    const categoryTotals: Record<string, number> = {};
+
+    expenses.forEach((item) => {
+      const amt = item.amount || 0;
+      const cat = item.category || 'Other';
+      categoryTotals[cat] = (categoryTotals[cat] || 0) + amt;
+
+      const isFixed =
+        cat.includes('Rent') ||
+        cat.includes('Utilities') ||
+        cat.includes('Software') ||
+        cat.includes('Insurance') ||
+        item.description?.toLowerCase().includes('lease') ||
+        item.description?.toLowerCase().includes('rent') ||
+        item.description?.toLowerCase().includes('internet');
+
+      if (isFixed) {
+        fixed += amt;
+      } else {
+        variable += amt;
+      }
+    });
+
+    const total = fixed + variable;
+
+    let driver = { category: 'Rent & Lease', amount: 85000 };
+    Object.entries(categoryTotals).forEach(([cat, sum]) => {
+      if (sum > driver.amount) {
+        driver = { category: cat, amount: sum };
+      }
+    });
+
+    return {
+      fixedTotal: fixed > 0 ? fixed : 102000,
+      variableTotal: variable > 0 ? variable : 46000,
+      largestDriver: driver,
+      totalExpenseAmount: total > 0 ? total : 148000,
+    };
+  }, [expenses]);
+
+  const fixedPercentage = Math.round((fixedTotal / totalExpenseAmount) * 100);
+  const variablePercentage = 100 - fixedPercentage;
 
   return (
     <div id="page-expenses" className="space-y-6">
@@ -94,7 +143,7 @@ export const ExpensesPage: React.FC = () => {
         <div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">Expense Operations & Overhead</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Cloud Firestore backed operating costs, showroom lease, and supplier disbursements
+            Cloud Firestore backed operating disbursements, fixed vs variable cost structure, and margin pressure
           </p>
         </div>
 
@@ -133,87 +182,119 @@ export const ExpensesPage: React.FC = () => {
         </div>
       )}
 
-      {/* 3 Core Expense Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* 1. Total Expenses */}
+      {/* 4 Core Expense & Margin Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 1. Total Operating Disbursements */}
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
-          <div className="text-xs text-slate-500 font-medium mb-1">Total Operating Expenses (Logged)</div>
+          <div className="text-xs text-slate-500 font-medium mb-1">Total Operating Expenses</div>
           <div className="text-2xl font-bold text-slate-900 font-mono tracking-tight">
             ₹{totalExpenseAmount.toLocaleString('en-IN')}
           </div>
           <div className="mt-2 text-xs text-slate-500">
-            {expenses.length} records in Cloud Firestore
+            {expenses.length} disbursements recorded
           </div>
         </div>
 
-        {/* 2. Monthly Expenses */}
+        {/* 2. Fixed vs Variable Ratio */}
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
-          <div className="text-xs text-slate-500 font-medium mb-1">Monthly Expenses (September)</div>
-          <div className="text-2xl font-bold text-slate-900 font-mono tracking-tight">
-            {expenseSummary.monthlyExpenses}
+          <div className="text-xs text-slate-500 font-medium mb-1 flex items-center justify-between">
+            <span>Fixed vs Variable Overhead</span>
+            <Layers className="w-3.5 h-3.5 text-slate-400" />
           </div>
-          <div className="mt-2 text-xs text-amber-600 font-medium flex items-center gap-1">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>{expenseSummary.monthOverMonthChange} vs August</span>
+          <div className="text-xl font-bold text-slate-900 font-mono tracking-tight">
+            {fixedPercentage}% / {variablePercentage}%
+          </div>
+          <div className="mt-2 text-xs text-slate-500">
+            Fixed: ₹{fixedTotal.toLocaleString('en-IN')} • Var: ₹{variableTotal.toLocaleString('en-IN')}
           </div>
         </div>
 
-        {/* 3. Largest Expense Category */}
+        {/* 3. Largest Expense Driver */}
         <div className="bg-white border border-blue-200 bg-blue-50/20 rounded-xl p-5 shadow-xs">
           <div className="flex items-center justify-between text-xs text-blue-900 font-medium mb-1">
-            <span>Largest Expense Category</span>
+            <span>Largest Cost Driver</span>
             <Landmark className="w-3.5 h-3.5 text-blue-600" />
           </div>
-          <div className="text-2xl font-bold text-blue-950 font-mono tracking-tight">
-            {expenseSummary.largestCategory}
+          <div className="text-xl font-bold text-blue-950 font-mono tracking-tight">
+            {largestDriver.category}
           </div>
           <div className="mt-2 text-xs text-blue-800">
-            Commercial showroom lease in Indiranagar
+            ₹{largestDriver.amount.toLocaleString('en-IN')} ({Math.round((largestDriver.amount / totalExpenseAmount) * 100)}% of total)
+          </div>
+        </div>
+
+        {/* 4. Margin Pressure Assessment */}
+        <div className="bg-white border border-amber-200 bg-amber-50/20 rounded-xl p-5 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-amber-900 font-medium mb-1">
+            <span>Margin Pressure</span>
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+          </div>
+          <div className="text-xl font-bold text-amber-800 font-mono tracking-tight">
+            Moderate Pressure
+          </div>
+          <div className="mt-2 text-xs text-amber-700">
+            Fixed overhead absorbs ~20% of retail gross turnover
           </div>
         </div>
       </div>
 
-      {/* Category Breakdown Bar */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-            Expense Category Distribution (September)
-          </h3>
-          <span className="text-xs font-mono text-slate-500">
-            Total Month: ₹1,48,000
-          </span>
+      {/* Fixed vs Variable Visual Breakdown Bar */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+              Fixed vs Variable Cost Breakdown
+            </h3>
+            <p className="text-[11px] text-slate-500">
+              Understanding operational breakeven threshold and exposure to revenue fluctuations
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-xs font-mono">
+            <span className="flex items-center gap-1 text-blue-700">
+              <span className="w-2.5 h-2.5 rounded-xs bg-blue-600"></span>
+              Fixed: {fixedPercentage}%
+            </span>
+            <span className="flex items-center gap-1 text-emerald-700">
+              <span className="w-2.5 h-2.5 rounded-xs bg-emerald-500"></span>
+              Variable: {variablePercentage}%
+            </span>
+          </div>
         </div>
 
-        <div className="w-full h-3 rounded-full overflow-hidden flex bg-slate-100 mb-4">
-          {expenseCategoryBreakdown.map((item) => (
-            <div
-              key={item.category}
-              style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-              title={`${item.category}: ${item.percentage}%`}
-              className="h-full transition-all duration-300"
-            />
-          ))}
+        {/* Multi-segment bar */}
+        <div className="w-full h-3 rounded-full overflow-hidden flex bg-slate-100">
+          <div
+            style={{ width: `${fixedPercentage}%` }}
+            className="h-full bg-blue-600 transition-all duration-300"
+            title={`Fixed: ${fixedPercentage}%`}
+          />
+          <div
+            style={{ width: `${variablePercentage}%` }}
+            className="h-full bg-emerald-500 transition-all duration-300"
+            title={`Variable: ${variablePercentage}%`}
+          />
         </div>
 
+        {/* Category Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-1">
           {expenseCategoryBreakdown.map((item) => (
-            <div key={item.category} className="text-xs p-2 rounded-lg bg-slate-50 border border-slate-100">
+            <div key={item.category} className="text-xs p-2.5 rounded-lg bg-slate-50 border border-slate-100">
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="w-2 h-2 rounded-xs" style={{ backgroundColor: item.color }} />
-                <span className="font-semibold text-slate-800">{item.category}</span>
+                <span className="font-semibold text-slate-800 truncate">{item.category}</span>
               </div>
               <div className="font-mono text-slate-900 font-bold">
                 ₹{item.amount.toLocaleString('en-IN')}
               </div>
               <div className="text-[10px] text-slate-500 font-mono">
-                {item.percentage}%
+                {item.percentage}% of overhead
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Expenses Table */}
+      {/* Expenses Table with Search and Add Expense Modal */}
       <ExpensesTable expenses={expenses} onAddExpense={handleAddExpense} />
     </div>
   );

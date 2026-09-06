@@ -102,18 +102,6 @@ export const RouterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     navigate('/login');
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white px-4">
-        <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30 mb-4 animate-pulse">
-          <Sparkles className="w-6 h-6 text-white" />
-        </div>
-        <h2 className="text-lg font-bold tracking-tight">OpsPilot AI</h2>
-        <p className="text-xs text-slate-400 mt-1">Initializing Firebase Authentication & Workspace...</p>
-      </div>
-    );
-  }
-
   return (
     <RouterContext.Provider
       value={{

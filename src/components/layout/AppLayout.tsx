@@ -22,18 +22,21 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       <div className="flex-1 flex flex-col min-w-0">
         <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
-        {/* Global Architecture Banner for Judges */}
-        <div className="bg-slate-100 border-b border-slate-200 px-6 lg:px-8 py-2 flex items-center justify-between text-xs text-slate-600">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
-              <ShieldCheck className="w-3 h-3 text-emerald-600" />
-              Phase 2 Active
+        {/* Production Architecture & Security Boundary Banner */}
+        <div
+          id="production-status-banner"
+          className="bg-slate-50 border-b border-slate-200/80 px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-y-1.5 gap-x-4 text-xs text-slate-600"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-full border border-emerald-300 shadow-2xs shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              Production Ready
             </span>
-            <span className="hidden sm:inline text-slate-700 font-medium">
-              Firebase Authentication & Cloud Firestore (ABAC Multi-Tenant Isolated)
+            <span className="text-slate-700 font-medium truncate">
+              Firebase Authentication & Cloud Firestore (Multi-Tenant Isolation)
             </span>
           </div>
-          <div className="text-[11px] text-slate-500 font-mono hidden md:flex items-center gap-2">
+          <div className="text-[11px] text-slate-500 font-mono hidden md:flex items-center gap-2 shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             <span>Firestore Rules Deployed • Zero-Trust Boundary</span>
           </div>

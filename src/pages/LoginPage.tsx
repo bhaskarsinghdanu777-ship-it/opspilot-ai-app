@@ -11,6 +11,8 @@ import {
   Store,
   CheckCircle2,
   AlertCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -19,6 +21,7 @@ export const LoginPage: React.FC = () => {
 
   const [email, setEmail] = useState('manager@novamart.in');
   const [password, setPassword] = useState('NovaMart2026!');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -26,10 +29,20 @@ export const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    if (!email.trim()) {
+      setErrorMessage('Please enter your email address.');
+      return;
+    }
+    if (!password) {
+      setErrorMessage('Please enter your password.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       navigate('/dashboard');
     } catch (err: unknown) {
       setErrorMessage(formatAuthError(err));
@@ -54,8 +67,8 @@ export const LoginPage: React.FC = () => {
   const handleQuickDemo = async () => {
     setErrorMessage(null);
     setIsSubmitting(true);
-    const demoEmail = 'demo.manager@novamart.in';
-    const demoPass = 'NovaMartDemo2026!';
+    const demoEmail = 'manager@novamart.in';
+    const demoPass = 'NovaMart2026!';
 
     try {
       await login(demoEmail, demoPass);
@@ -110,7 +123,7 @@ export const LoginPage: React.FC = () => {
 
         {/* Card */}
         <div className="mt-8 bg-white rounded-2xl shadow-xl border border-slate-200/80 p-8">
-          {/* Phase 2 Firebase Auth Indicator */}
+          {/* Production Firebase Auth Indicator */}
           <div className="mb-6 p-3.5 bg-emerald-50/80 rounded-xl border border-emerald-200/70 text-xs text-emerald-900 flex items-start gap-2.5">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div>
@@ -145,10 +158,11 @@ export const LoginPage: React.FC = () => {
                   id="login-email-input"
                   type="email"
                   required
+                  disabled={isSubmitting}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="manager@novamart.in"
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                 />
               </div>
             </div>
@@ -166,13 +180,27 @@ export const LoginPage: React.FC = () => {
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   id="login-password-input"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
+                  disabled={isSubmitting}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                  className="w-full pl-9 pr-10 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                 />
+                <button
+                  type="button"
+                  id="btn-toggle-password-visibility"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
             </div>
 

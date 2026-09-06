@@ -13,6 +13,8 @@ import {
   Building2,
   AlertCircle,
   Tag,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export const SignupPage: React.FC = () => {
@@ -25,6 +27,8 @@ export const SignupPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -125,10 +129,11 @@ export const SignupPage: React.FC = () => {
                     id="signup-name-input"
                     type="text"
                     required
+                    disabled={isSubmitting}
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="Dev Anand"
-                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                   />
                 </div>
               </div>
@@ -143,10 +148,11 @@ export const SignupPage: React.FC = () => {
                     id="signup-email-input"
                     type="email"
                     required
+                    disabled={isSubmitting}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="manager@novamart.in"
-                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                   />
                 </div>
               </div>
@@ -163,10 +169,11 @@ export const SignupPage: React.FC = () => {
                     id="signup-business-name-input"
                     type="text"
                     required
+                    disabled={isSubmitting}
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                     placeholder="NovaMart Electronics"
-                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                   />
                 </div>
               </div>
@@ -179,9 +186,10 @@ export const SignupPage: React.FC = () => {
                   <Tag className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <select
                     id="signup-industry-select"
+                    disabled={isSubmitting}
                     value={industry}
                     onChange={(e) => setIndustry(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 bg-white"
+                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 bg-white disabled:bg-slate-50 disabled:text-slate-500"
                   >
                     <option value="Retail / Electronics">Retail / Electronics</option>
                     <option value="Apparel & Fashion">Apparel & Fashion</option>
@@ -202,13 +210,27 @@ export const SignupPage: React.FC = () => {
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     id="signup-password-input"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
+                    disabled={isSubmitting}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                    className="w-full pl-9 pr-10 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                   />
+                  <button
+                    type="button"
+                    id="btn-toggle-signup-password"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -220,13 +242,27 @@ export const SignupPage: React.FC = () => {
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     id="signup-confirm-password-input"
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     required
+                    disabled={isSubmitting}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                    className="w-full pl-9 pr-10 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 disabled:bg-slate-50 disabled:text-slate-500"
                   />
+                  <button
+                    type="button"
+                    id="btn-toggle-signup-confirm-password"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
               </div>
             </div>

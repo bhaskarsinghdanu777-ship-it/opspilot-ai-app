@@ -140,6 +140,24 @@ export const AiOperationsPage: React.FC = () => {
     };
   }, [user, business, routeState, loadFirestoreContext]);
 
+  // Human-friendly error mapper
+  const formatUserFacingError = (err: any): string => {
+    const msg = (err?.message || String(err || '')).toLowerCase();
+    if (msg.includes('auth') || msg.includes('token') || msg.includes('unauthorized') || msg.includes('sign in')) {
+      return 'Your session has expired or authentication is required. Please sign in again.';
+    }
+    if (msg.includes('network') || msg.includes('fetch') || msg.includes('failed to fetch')) {
+      return 'Network connection issue. Please verify your internet connection and try again.';
+    }
+    if (msg.includes('telemetry') || msg.includes('no data') || msg.includes('empty')) {
+      return 'Not enough business data is available in Firestore for this analysis. Please ensure transactions and products exist.';
+    }
+    if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('429')) {
+      return 'AI Operations service is experiencing high operational traffic. Please try again in a few moments.';
+    }
+    return 'OpsPilot could not complete the analysis. Please verify your business telemetry and try again.';
+  };
+
   // Core analysis dispatcher
   const executeAnalysis = async (queryText?: string, targetMode?: AiAnalysisMode) => {
     if (!user) {
@@ -213,10 +231,7 @@ export const AiOperationsPage: React.FC = () => {
       setActiveAnalysis(result);
     } catch (err: any) {
       console.error('AI Analysis failed:', err);
-      setError(
-        err.message ||
-          'Failed to complete Gemini analysis. Please verify network connectivity and try again.'
-      );
+      setError(formatUserFacingError(err));
     } finally {
       setIsAnalyzing(false);
     }
@@ -236,8 +251,9 @@ export const AiOperationsPage: React.FC = () => {
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
               AI Operations Studio
             </h1>
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-200">
-              Live Gemini 3.8 Flash
+            <span className="text-[10px] font-mono font-semibold bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Model: {activeAnalysis?.generatedBy || 'gemini-3.8-flash'}</span>
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">

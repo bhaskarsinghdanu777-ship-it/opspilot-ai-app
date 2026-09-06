@@ -55,24 +55,24 @@ export const Header: React.FC<{ onToggleSidebar?: () => void }> = ({ onToggleSid
   return (
     <header
       id="app-header"
-      className="sticky top-0 z-30 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 lg:px-8"
+      className="sticky top-0 z-30 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-4"
     >
       {/* Left: Mobile Toggle & Page Breadcrumb Title */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
-            className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
             aria-label="Toggle navigation menu"
           >
             <Menu className="w-5 h-5" />
           </button>
         )}
 
-        <div>
-          <h1 className="text-lg sm:text-xl font-semibold text-slate-800 flex items-center">
-            <span>{displayBusiness}</span>
-            <span className="text-slate-400 text-xs sm:text-sm font-normal ml-2">
+        <div className="min-w-0">
+          <h1 className="text-base sm:text-lg lg:text-xl font-semibold text-slate-800 flex items-center gap-1.5 min-w-0">
+            <span className="truncate">{displayBusiness}</span>
+            <span className="text-slate-400 text-xs sm:text-sm font-normal shrink-0">
               / {getPageTitle(currentRoute)}
             </span>
           </h1>
@@ -80,30 +80,30 @@ export const Header: React.FC<{ onToggleSidebar?: () => void }> = ({ onToggleSid
       </div>
 
       {/* Right: Search, Notifications, Profile */}
-      <div className="flex items-center gap-3 sm:gap-6">
+      <div className="flex items-center gap-2 sm:gap-4 lg:gap-5 shrink-0">
         {/* Search Bar */}
-        <div className="relative h-10 w-36 sm:w-64 hidden sm:block">
+        <div className="relative h-9 sm:h-10 w-32 md:w-52 lg:w-64 hidden sm:block">
           <input
             type="text"
             placeholder="Search records..."
-            className="w-full h-full bg-slate-100 rounded-full pl-10 pr-4 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 border-none text-slate-800"
+            className="w-full h-full bg-slate-100 hover:bg-slate-200/60 focus:bg-white rounded-full pl-9 pr-4 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 border border-transparent focus:border-blue-500/20 text-slate-800 transition-all placeholder:text-slate-400"
           />
-          <Search className="w-4 h-4 text-slate-400 absolute left-4 top-3 pointer-events-none" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
 
         {/* Notifications Dropdown */}
-        <div className="relative">
+        <div className="relative shrink-0">
           <button
             id="notifications-bell-button"
             onClick={() => {
               setShowNotifications(!showNotifications);
               setShowProfileMenu(false);
             }}
-            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors cursor-pointer relative"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer relative shrink-0"
             aria-label="View notifications"
           >
-            <Bell className="w-5 h-5 text-slate-600" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
           </button>
 
           {showNotifications && (
@@ -159,23 +159,23 @@ export const Header: React.FC<{ onToggleSidebar?: () => void }> = ({ onToggleSid
         </div>
 
         {/* User Profile Area */}
-        <div className="relative">
+        <div className="relative shrink-0">
           <button
             id="user-profile-menu-button"
             onClick={() => {
               setShowProfileMenu(!showProfileMenu);
               setShowNotifications(false);
             }}
-            className="flex items-center gap-2.5 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-left"
+            className="flex items-center gap-2 sm:gap-2.5 p-1 sm:px-2 sm:py-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-left shrink-0"
           >
-            <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-semibold text-xs flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-semibold text-xs flex items-center justify-center shadow-xs shrink-0">
               {initials}
             </div>
-            <div className="hidden sm:block text-xs">
-              <div className="font-semibold text-slate-900">{displayName}</div>
-              <div className="text-[11px] text-slate-500">{displayBusiness}</div>
+            <div className="hidden sm:block text-xs leading-tight">
+              <div className="font-semibold text-slate-900 truncate max-w-[120px] lg:max-w-[160px]">{displayName}</div>
+              <div className="text-[11px] text-slate-500 truncate max-w-[120px] lg:max-w-[160px]">{displayBusiness}</div>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           </button>
 
           {showProfileMenu && (
@@ -223,7 +223,7 @@ export const Header: React.FC<{ onToggleSidebar?: () => void }> = ({ onToggleSid
                 >
                   <span className="flex items-center gap-2">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>Firebase Firestore DB</span>
+                    <span>Firestore Database</span>
                   </span>
                   <ExternalLink className="w-3 h-3 text-slate-400" />
                 </a>
@@ -240,7 +240,7 @@ export const Header: React.FC<{ onToggleSidebar?: () => void }> = ({ onToggleSid
                   className="w-full text-left px-3.5 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer font-medium"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span>Sign Out (Firebase Logout)</span>
+                  <span>Sign Out</span>
                 </button>
               </div>
             </div>

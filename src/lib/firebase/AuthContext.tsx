@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from './config';
 import {
@@ -47,33 +47,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const isRegisteringRef = useRef<boolean>(false);
 
   const loadUserData = async (currentUser: FirebaseUser) => {
     try {
       let profile = await getUserProfile(currentUser.uid);
 
       if (!profile) {
-        // Auto-provision default profile & workspace if newly created or first-time
+        // If registration is currently in flight, allow registerWithEmail to create the records
+        if (isRegisteringRef.current) {
+          return;
+        }
+
+        // Check if an existing business is owned by this user
+        const existingBiz = await getUserBusiness(currentUser.uid);
         const now = new Date().toISOString();
-        const bizId = `biz_${currentUser.uid.slice(0, 10)}`;
-        const defaultBiz: Business = {
-          id: bizId,
-          name: 'NovaMart Electronics',
-          industry: 'Retail / Electronics',
-          ownerId: currentUser.uid,
-          createdAt: now,
-        };
-        await createBusiness(defaultBiz);
+        const bizId = existingBiz?.id || `biz_${currentUser.uid.slice(0, 12)}`;
+
+        let activeBiz = existingBiz;
+        if (!activeBiz) {
+          const defaultBiz: Business = {
+            id: bizId,
+            name: 'NovaMart Electronics',
+            industry: 'Retail / Electronics',
+            ownerId: currentUser.uid,
+            createdAt: now,
+          };
+          await createBusiness(defaultBiz);
+          activeBiz = defaultBiz;
+        }
 
         profile = {
           uid: currentUser.uid,
           email: currentUser.email || '',
-          displayName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Store Manager',
+          displayName:
+            currentUser.displayName ||
+            currentUser.email?.split('@')[0] ||
+            'Store Manager',
           businessId: bizId,
           createdAt: now,
         };
         await createUserProfile(profile);
-        setBusiness(defaultBiz);
+        setBusiness(activeBiz);
         setUserProfile(profile);
         return;
       }
@@ -100,7 +115,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        await loadUserData(currentUser);
+        if (!isRegisteringRef.current) {
+          await loadUserData(currentUser);
+        }
       } else {
         setUserProfile(null);
         setBusiness(null);
@@ -112,26 +129,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, pass: string) => {
-    setLoading(true);
     try {
       const loggedUser = await loginWithEmail(email, pass);
+      setUser(loggedUser);
       await loadUserData(loggedUser);
     } catch (err) {
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
   const loginGoogle = async () => {
-    setLoading(true);
     try {
       const loggedUser = await loginWithGoogle();
+      setUser(loggedUser);
       await loadUserData(loggedUser);
     } catch (err) {
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -142,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     businessName?: string,
     industry?: string
   ) => {
-    setLoading(true);
+    isRegisteringRef.current = true;
     try {
       const res = await registerWithEmail(
         email,
@@ -157,19 +170,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       throw err;
     } finally {
-      setLoading(false);
+      isRegisteringRef.current = false;
     }
   };
 
   const logout = async () => {
-    setLoading(true);
     try {
       await logoutUser();
       setUser(null);
       setUserProfile(null);
       setBusiness(null);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error('Error during logout:', err);
+      throw err;
     }
   };
 
